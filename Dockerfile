@@ -11,13 +11,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     HF_HOME=/root/.cache/huggingface
 
 RUN apt-get update && apt-get install -y \
-    software-properties-common curl ffmpeg libgomp1 git && \
-    add-apt-repository ppa:deadsnakes/ppa -y && \
-    apt-get update && apt-get install -y \
-    python3.12 python3.12-distutils python3.12-venv && \
-    ln -sf /usr/bin/python3.12 /usr/bin/python && \
-    curl -sS https://bootstrap.pypa.io/get-pip.py | python && \
-    pip install --upgrade pip
+    software-properties-common curl ffmpeg libgomp1 git \
+    python3.12 python3.12-venv python3.12-dev \
+    && ln -sf /usr/bin/python3.12 /usr/bin/python \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python \
+    && pip install --upgrade pip
 
 RUN pip install --no-cache-dir "poetry==1.8.4" \
     && poetry config virtualenvs.create false
