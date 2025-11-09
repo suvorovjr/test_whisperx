@@ -4,8 +4,7 @@ FROM nvidia/cuda:12.8.0-runtime-ubuntu24.04 AS builder
 # Build environment
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PATH="/venv/bin:$PATH"
+    PIP_NO_CACHE_DIR=1
 
 # 1️⃣ Устанавливаем системные зависимости
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,17 +16,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python -m pip install --no-cache-dir poetry==1.8.4 \
     && poetry config virtualenvs.create false
 
-COPY poetry.lock pyproject.toml ./
+# 2️⃣ Создаём виртуальное окружение
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-RUN poetry install --without dev --no-interaction --no-ansi \
-    && rm -rf $(poetry config cache-dir)/{cache,artifacts}
+# 3️⃣ Устанавливаем Poetry (в окружение)
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install poetry
 
+# 4️⃣ Копируем файлы зависимостей Poetry
+WORKDIR /app
+COPY pyproject.toml poetry.lock* ./
+
+# 5️⃣ Устанавливаем зависимости проекта без дев-зависимостей
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-root --only main
+
+# 6️⃣ Устанавливаем PyTorch с поддержкой CUDA 12.8
 RUN pip install --no-cache-dir torch torchvision torchaudio \
     --extra-index-url https://download.pytorch.org/whl/cu128
 
-
+# 7️⃣ Копируем код микросервиса
 COPY . .
 
+# === RUNTIME STAGE ==========================================================
 FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -52,8 +64,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
 COPY . .
 
-
 COPY entrypoint.sh /web/entrypoint.sh
+
 RUN chmod +x /web/entrypoint.sh
 
 CMD ["/web/entrypoint.sh"]
