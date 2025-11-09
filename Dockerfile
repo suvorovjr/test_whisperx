@@ -1,40 +1,59 @@
-FROM nvidia/cuda:12.8.0-runtime-ubuntu24.04
+# === BUILDER STAGE ==========================================================
+FROM nvidia/cuda:12.8.1-devel-ubuntu24.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    TRANSFORMERS_CACHE=/root/.cache/huggingface \
-    HF_HOME=/root/.cache/huggingface
+    PIP_NO_CACHE_DIR=1
 
-WORKDIR /app
-
-# system deps
+# Устанавливаем системные зависимости
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    software-properties-common build-essential wget curl git ca-certificates && \
-    add-apt-repository ppa:deadsnakes/ppa && apt-get update && \
-    apt-get install -y --no-install-recommends python3.12 python3.12-dev && \
+    python3 python3-pip python3-venv python3-dev \
+    build-essential git curl wget ca-certificates gcc g++ make && \
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip && \
+    rm -f /usr/lib/python*/EXTERNALLY-MANAGED && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install -y python3-venv
+# Устанавливаем PyTorch с поддержкой CUDA 12.8
+RUN pip install --no-cache-dir torch torchvision torchaudio \
+    --extra-index-url https://download.pytorch.org/whl/cu128
 
-RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/python -m ensurepip && \
-    /opt/venv/bin/pip install --upgrade pip setuptools wheel
-
+# Создаём виртуальное окружение
+RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN pip install --no-cache-dir "poetry==1.8.4" \
-    && poetry config virtualenvs.create false
+# Устанавливаем зависимости проекта (через requirements.txt или poetry)
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install -r /tmp/requirements.txt
 
-COPY pyproject.toml poetry.lock ./
+# === RUNTIME STAGE ==========================================================
+FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04
 
-# install deps
-RUN poetry install --no-interaction --no-ansi \
-    && rm -rf $(poetry config cache-dir)/{cache,artifacts}
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    CUDA_HOME=/usr/local/cuda
 
+# Устанавливаем минимальный набор библиотек для FastAPI
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-venv python3-pip git curl wget ca-certificates \
+    libsm6 libxext6 libxrender-dev libglib2.0-0 libgomp1 && \
+    ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip && \
+    rm -f /usr/lib/python*/EXTERNALLY-MANAGED && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Копируем окружение и зависимости
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Копируем код микросервиса
+WORKDIR /app
 COPY . .
 
-COPY entrypoint.sh /web/entrypoint.sh
-RUN chmod +x /web/entrypoint.sh
+# Открываем порт FastAPI
+EXPOSE 8000
 
-ENTRYPOINT ["/web/entrypoint.sh"]
+# Запуск через uvicorn
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
