@@ -10,11 +10,10 @@ WORKDIR /app
 
 # system deps
 RUN apt-get update && apt-get install -y \
-    python3.12 python3.12-venv python3.12-dev \
+    python3.12 python3.12-venv python3.12-dev python3-pip \
     ffmpeg libgomp1 git curl \
     && ln -sf /usr/bin/python3.12 /usr/bin/python \
-    && curl -sS https://bootstrap.pypa.io/get-pip.py | python \
-    && pip install --upgrade pip
+    && pip install --upgrade pip --break-system-packages
 
 # install poetry
 RUN pip install --no-cache-dir "poetry==1.8.4" \
