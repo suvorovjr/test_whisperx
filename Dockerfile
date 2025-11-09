@@ -12,7 +12,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common build-essential wget curl git ca-certificates && \
     add-apt-repository ppa:deadsnakes/ppa && apt-get update && \
-    apt-get install -y --no-install-recommends python3.12 python3.12-dev python3.12-distutils && \
+    apt-get install -y --no-install-recommends python3.12 python3.12-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3.12 get-pip.py && rm get-pip.py
