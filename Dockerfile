@@ -12,9 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ln -sf /usr/bin/python3 /usr/bin/python && \
     ln -sf /usr/bin/pip3 /usr/bin/pip && \
     rm -f /usr/lib/python*/EXTERNALLY-MANAGED && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* \
-    python -m pip install --no-cache-dir poetry==1.8.4 \
-    && poetry config virtualenvs.create false
+    apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # 2️⃣ Создаём виртуальное окружение
 RUN python -m venv /opt/venv
@@ -64,8 +62,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
 COPY . .
 
-COPY entrypoint.sh /web/entrypoint.sh
+# Открываем порт FastAPI
+EXPOSE 8000
 
-RUN chmod +x /web/entrypoint.sh
-
-CMD ["/web/entrypoint.sh"]
+# Запуск через uvicorn (можно заменить на gunicorn)
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
