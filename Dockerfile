@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get install -y --no-install-recommends python3.12 python3.12-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get install -y python3.12-venv
+
 RUN python3.12 -m venv /opt/venv && \
     /opt/venv/bin/python -m ensurepip && \
     /opt/venv/bin/pip install  --upgrade pip setuptools wheel
