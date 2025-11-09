@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04
+FROM nvidia/cuda:12.4.1-runtime-ubuntu24.04
 
 WORKDIR /app
 
