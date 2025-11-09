@@ -15,9 +15,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get install -y --no-install-recommends python3.12 python3.12-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN wget https://bootstrap.pypa.io/get-pip.py && python3.12 get-pip.py && rm get-pip.py
+RUN python3.12 -m venv /opt/venv && \
+    /opt/venv/bin/python -m ensurepip && \
+    /opt/venv/bin/pip install  --upgrade pip setuptools wheel
 
-# install poetry
+ENV PATH="/opt/venv/bin:$PATH"
+
 RUN pip install --no-cache-dir "poetry==1.8.4" \
     && poetry config virtualenvs.create false
 
