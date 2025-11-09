@@ -9,10 +9,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
 WORKDIR /app
 
 # system deps
-RUN apt-get update && apt-get install -y \
-    python3.12 python3.12-venv python3.12-dev python3-pip \
-    ffmpeg libgomp1 git curl \
-    && ln -sf /usr/bin/python3.12 /usr/bin/python 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common build-essential wget curl git ca-certificates && \
+    add-apt-repository ppa:deadsnakes/ppa && apt-get update && \
+    apt-get install -y --no-install-recommends python3.12 python3.12-dev python3.12-distutils && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://bootstrap.pypa.io/get-pip.py && python3.12 get-pip.py && rm get-pip.py
 
 # install poetry
 RUN pip install --no-cache-dir "poetry==1.8.4" \
